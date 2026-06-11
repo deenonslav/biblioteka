@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova pozajmica - Biblioteka</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="index.html">📚 Biblioteka</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="knjiga.html">Knjige</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="pozajmica.html">Pozajmice</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="crud-container">
+        <h2>Nova pozajmica</h2>
+        <hr>
+
+        <div class="mb-3">
+            <label for="knjigaId" class="form-label">Knjiga</label>
+            <select class="form-select" id="knjigaId">
+                <option value="">-- Izaberite knjigu --</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="imeclana" class="form-label">Ime člana</label>
+            <input type="text" class="form-control" id="imeclana" placeholder="Ime i prezime člana">
+        </div>
+
+        <div class="mb-3">
+            <label for="datumUzimanja" class="form-label">Datum uzimanja</label>
+            <input type="date" class="form-control" id="datumUzimanja">
+        </div>
+
+        <div class="mb-3">
+            <label for="datumVracanja" class="form-label">Datum vraćanja <small class="text-muted">(opciono)</small></label>
+            <input type="date" class="form-control" id="datumVracanja">
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-dark" onclick="savePozajmica()">Sačuvaj</button>
+            <a href="pozajmica.html" class="btn btn-secondary">Odustani</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="js/utils.js"></script>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const preselectedKnjigaId = params.get('knjigaId');
+
+    async function loadKnjige() {
+        const knjige = await httpGet('/api/knjiga');
+        const select = document.getElementById('knjigaId');
+        knjige.forEach(k => {
+            const option = document.createElement('option');
+            option.value = k.knjigaId;
+            option.textContent = `${k.naslov} - ${k.autor}`;
+            if (preselectedKnjigaId && k.knjigaId == preselectedKnjigaId) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    }
+
+    async function savePozajmica() {
+        const knjigaId = document.getElementById('knjigaId').value;
+        const imeclana = document.getElementById('imeclana').value.trim();
+        const datumUzimanja = document.getElementById('datumUzimanja').value;
+        const datumVracanja = document.getElementById('datumVracanja').value;
+
+        if (!knjigaId || !imeclana || !datumUzimanja) {
+            Swal.fire('Greška!', 'Knjiga, ime člana i datum uzimanja su obavezni.', 'error');
+            return;
+        }
+
+        const data = {
+            knjigaId: parseInt(knjigaId),
+            imeclana: imeclana,
+            datumUzimanja: datumUzimanja,
+            datumVracanja: datumVracanja || null
+        };
+
+        const result = await httpPost('/api/pozajmica', data);
+
+        if (result.pozajmicaId) {
+            await Swal.fire('Uspešno!', 'Pozajmica je evidentirana.', 'success');
+            if (preselectedKnjigaId) {
+                window.location.href = `details-knjiga.html?id=${preselectedKnjigaId}`;
+            } else {
+                window.location.href = 'pozajmica.html';
+            }
+        } else {
+            Swal.fire('Greška!', 'Došlo je do greške pri čuvanju.', 'error');
+        }
+    }
+
+    loadKnjige();
+
+    // postavi danasnji datum kao default
+    document.getElementById('datumUzimanja').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
